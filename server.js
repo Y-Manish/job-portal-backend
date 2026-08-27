@@ -32,7 +32,7 @@ app.get("/api/jobs",(req,res)=>{
     })
 })
 
-//Get the user by id
+//Get the job by id
 app.get("/api/jobs/:id",(req,res)=>{
     const jobId = Number(req.params.id)
     const job = jobs.find((eachjob)=> eachjob.id === jobId);
@@ -75,7 +75,6 @@ app.post("/api/jobs",(req,res)=>{
 })
 
 //Update job by id
-// Update job by id
 app.patch("/api/jobs/:id", (req, res) => {
   // Read ID from URL
   const jobId = Number(req.params.id);
