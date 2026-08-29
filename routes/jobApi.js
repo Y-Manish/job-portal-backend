@@ -1,124 +1,115 @@
-import exp from "express"
+import express from "express";
+import { JobModel } from "../models/Jobmodel.js";
 
-export const jobRouter = exp.Router()
+export const jobRouter = express.Router();
 
-const jobs = [
-  {
-    id: 1,
-    title: "Frontend Developer",
-    company: "Tech Solutions",
-    location: "Hyderabad",
-  },
-  {
-    id: 2,
-    title: "Backend Developer",
-    company: "Code Labs",
-    location: "Bengaluru",
-  },
-];
+jobRouter.post("/jobs", async (req, res) => {
+  try {
+    const newJob = await JobModel.create(req.body);
 
-//For getting all the jobs
-jobRouter.get("/jobs",(req,res)=>{
+    res.status(201).json({
+      success: true,
+      message: "Job created successfully",
+      data: newJob,
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+});
+
+jobRouter.get("/jobs", async (req, res) => {
+  try {
+    const jobs = await JobModel.find();
+
     res.status(200).json({
-        success:true,
-        message:"Job portal backend is working",
-        data:jobs
-    })
-})
+      success: true,
+      message: "Jobs fetched successfully",
+      data: jobs,
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+});
 
-//Get the job by id
-jobRouter.get("/jobs/:id",(req,res)=>{
-    const jobId = Number(req.params.id)
-    const job = jobs.find((eachjob)=> eachjob.id === jobId);
-    if(job===undefined)
+jobRouter.get("/jobs/:jobId",async (req,res)=>{
+  try{
+    const job = await JobModel.findById(req.params.jobId)
+    if(job===null)
     {
-        return res.status(404).json({
-            success:false,
-            message:"Job not found"
-        })
+      return res.status(404).json({
+        success:false,
+        message:"Job not found"
+      })
     }
-    //else:
     res.status(200).json({
-        success:true,
-        message:"Job fetched successfully",
-        data:job,
-    });
-});
-
-//Add new Job 
-jobRouter.post("/jobs",(req,res)=>{
-    const newJob = req.body
-      // Validate required fields
-  if (!newJob.title || !newJob.company || !newJob.location) {
-    return res.status(400).json({
-      success: false,
-      message: "Title, company and location are required",
-    });
+      success:true,
+      message:"job fetched successfully",
+      data:job
+    })
+  }catch(error){
+    res.status(400).json({
+      success:false,
+      message:error.message
+    })
   }
-  //Generate new id
-  newJob.id =  jobs.length+1
-
-  //Add new job to the array
-  jobs.push(newJob)
-    // Send response
-  res.status(201).json({
-    success: true,
-    message: "Job created successfully",
-    data: newJob,
-  });
 })
 
-//Update job by id
-jobRouter.patch("/jobs/:id", (req, res) => {
-  // Read ID from URL
-  const jobId = Number(req.params.id);
+jobRouter.patch("/jobs/:jobId",async(req,res)=>{
+  try{
+    const updatedJob = await JobModel.findByIdAndUpdate(
+      req.params.jobId,
+      req.body,
+      {
+        new:true, //Returns the modified document instead of the original one
+        runValidators:true, // To validate the updated data with schema 
+      }
+    )
+        if (updatedJob === null) {
+      return res.status(404).json({
+        success: false,
+        message: "Job not found",
+      });
+    }
 
-  // Find the job position
-  const jobIndex = jobs.findIndex((eachJob) => eachJob.id === jobId);
-
-  // Check whether the job exists
-  if (jobIndex === -1) {
-    return res.status(404).json({
+    res.status(200).json({
+      success: true,
+      message: "Job updated successfully",
+      data: updatedJob,
+    });
+  } catch (error) {
+    res.status(400).json({
       success: false,
-      message: "Job not found",
+      message: error.message,
     });
   }
+})
 
-  // Update the existing job with the fields sent by the client
-  jobs[jobIndex] = {
-    ...jobs[jobIndex],
-    ...req.body,
-    id: jobId,
-  };
+jobRouter.delete("/jobs/:jobId", async (req, res) => {
+  try {
+    const deletedJob = await JobModel.findByIdAndDelete(req.params.jobId);
 
-  res.status(200).json({
-    success: true,
-    message: "Job updated successfully",
-    data: jobs[jobIndex],
-  });
-});
+    if (deletedJob === null) {
+      return res.status(404).json({
+        success: false,
+        message: "Job not found",
+      });
+    }
 
-jobRouter.delete("/jobs/:id", (req, res) => {
-  // Read ID from URL
-  const jobId = Number(req.params.id);
-
-  // Find the job position
-  const jobIndex = jobs.findIndex((eachJob) => eachJob.id === jobId);
-
-  // Check whether the job exists
-  if (jobIndex === -1) {
-    return res.status(404).json({
+    res.status(200).json({
+      success: true,
+      message: "Job deleted successfully",
+      data: deletedJob,
+    });
+  } catch (error) {
+    res.status(400).json({
       success: false,
-      message: "Job not found",
+      message: error.message,
     });
   }
-
-  // Remove one job from the array
-  const deletedJob = jobs.splice(jobIndex, 1);
-
-  res.status(200).json({
-    success: true,
-    message: "Job deleted successfully",
-    data: deletedJob[0],
-  });
 });
