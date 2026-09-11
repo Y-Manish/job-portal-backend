@@ -92,10 +92,16 @@ userRouter.post("/login", async (req, res) => {
       }
     );
 
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: false,
+      sameSite: "lax",
+      maxAge: 24 * 60 * 60 * 1000,
+    });
+
     res.status(200).json({
       success: true,
       message: "Login successful",
-      token: token,
       data: {
         _id: user._id,
         name: user.name,
@@ -110,4 +116,18 @@ userRouter.post("/login", async (req, res) => {
       message: error.message,
     });
   }
+});
+
+// LOGOUT USER
+userRouter.post("/logout", (req, res) => {
+  res.clearCookie("token", {
+    httpOnly: true,
+    secure: false,
+    sameSite: "lax",
+  });
+
+  res.status(200).json({
+    success: true,
+    message: "Logout successful",
+  });
 });
