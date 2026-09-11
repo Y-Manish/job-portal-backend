@@ -7,21 +7,28 @@ const jobSchema = new Schema(
       required: [true, "Job title is required"],
       trim: true,
     },
+
     company: {
       type: String,
       required: [true, "Company name is required"],
       trim: true,
     },
+
     location: {
       type: String,
-      required: [true, "Job location is required"],
+      required: [true, "Location is required"],
       trim: true,
+    },
+
+    employer: {
+      type: Schema.Types.ObjectId,
+      ref: "user",
+      required: true,
     },
   },
   {
-    versionKey: false,
     timestamps: true,
-    strict: "throw",
+    versionKey: false,
   }
 );
 

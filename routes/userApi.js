@@ -4,6 +4,9 @@ import jwt from "jsonwebtoken";
 
 import { UserModel } from "../models/Usermodel.js";
 
+import { authenticateUser } from "../middleware/authMiddleware.js";
+import { authorizeRoles } from "../middleware/roleMiddleware.js";
+
 export const userRouter = express.Router();
 
 
@@ -131,3 +134,23 @@ userRouter.post("/logout", (req, res) => {
     message: "Logout successful",
   });
 });
+
+userRouter.get("/protected", authenticateUser, (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: "Protected route accessed successfully",
+    user: req.user,
+  });
+});
+
+userRouter.get(
+  "/employer-only",
+  authenticateUser,
+  authorizeRoles("EMPLOYER"),
+  (req, res) => {
+    res.status(200).json({
+      success: true,
+      message: "Employer route accessed successfully",
+    });
+  }
+);
