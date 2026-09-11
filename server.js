@@ -1,6 +1,7 @@
 import express from "express";
 import mongoose from "mongoose";
 import { jobRouter } from "./routes/jobApi.js";
+import {userRouter} from "./routes/userApi.js";
 
 const app = express();
 const PORT = 4000;
@@ -20,6 +21,7 @@ app.get("/", (req, res) => {
 
 // Attach Job API routes after /api
 app.use("/api", jobRouter);
+app.use("/api",userRouter);
 
 app.listen(PORT, () => {
   console.log(`Server is running at port ${PORT}`);

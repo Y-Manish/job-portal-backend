@@ -1,4 +1,5 @@
 import { Schema, model } from "mongoose";
+import bcrypt from "bcrypt";
 
 const userSchema = new Schema(
   {
@@ -25,8 +26,8 @@ const userSchema = new Schema(
     role: {
       type: String,
       enum: {
-        values: ["JOB_SEEKER", "EMPLOYER"],
-        message: "Role must be JOB_SEEKER or EMPLOYER",
+        values: ["JOB_SEEKER", "EMPLOYER", "ADMIN"],
+        message: "Role must be JOB_SEEKER, EMPLOYER or ADMIN",
       },
       default: "JOB_SEEKER",
     },
@@ -37,5 +38,16 @@ const userSchema = new Schema(
     strict: "throw",
   }
 );
+
+
+// HASH PASSWORD BEFORE SAVING
+userSchema.pre("save", async function () {
+  if (!this.isModified("password")) {
+    return;
+  }
+
+  this.password = await bcrypt.hash(this.password, 10);
+});
+
 
 export const UserModel = model("user", userSchema);
