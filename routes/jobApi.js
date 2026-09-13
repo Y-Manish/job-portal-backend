@@ -6,8 +6,6 @@ import { authorizeRoles } from "../middleware/roleMiddleware.js";
 
 export const jobRouter = express.Router();
 
-
-// CREATE JOB - EMPLOYER ONLY
 jobRouter.post(
   "/jobs",
   authenticateUser,
@@ -24,7 +22,6 @@ jobRouter.post(
         message: "Job created successfully",
         data: newJob,
       });
-
     } catch (error) {
       res.status(400).json({
         success: false,
@@ -34,8 +31,6 @@ jobRouter.post(
   }
 );
 
-
-// GET ALL JOBS
 jobRouter.get("/jobs", async (req, res) => {
   try {
     const jobs = await JobModel.find();
@@ -45,7 +40,6 @@ jobRouter.get("/jobs", async (req, res) => {
       message: "Jobs fetched successfully",
       data: jobs,
     });
-
   } catch (error) {
     res.status(400).json({
       success: false,
@@ -54,13 +48,35 @@ jobRouter.get("/jobs", async (req, res) => {
   }
 });
 
+jobRouter.get(
+  "/jobs/my-jobs",
+  authenticateUser,
+  authorizeRoles("EMPLOYER"),
+  async (req, res) => {
+    try {
+      const jobs = await JobModel.find({
+        employer: req.user.userId,
+      });
 
-// GET JOB BY ID
+      res.status(200).json({
+        success: true,
+        message: "Your jobs fetched successfully",
+        data: jobs,
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  }
+);
+
 jobRouter.get("/jobs/:jobId", async (req, res) => {
   try {
     const job = await JobModel.findById(req.params.jobId);
 
-    if (job === null) {
+    if (!job) {
       return res.status(404).json({
         success: false,
         message: "Job not found",
@@ -72,7 +88,6 @@ jobRouter.get("/jobs/:jobId", async (req, res) => {
       message: "Job fetched successfully",
       data: job,
     });
-
   } catch (error) {
     res.status(400).json({
       success: false,
@@ -81,65 +96,86 @@ jobRouter.get("/jobs/:jobId", async (req, res) => {
   }
 });
 
+jobRouter.patch(
+  "/jobs/:jobId",
+  authenticateUser,
+  authorizeRoles("EMPLOYER"),
+  async (req, res) => {
+    try {
+      const job = await JobModel.findById(req.params.jobId);
 
-// UPDATE JOB
-jobRouter.patch("/jobs/:jobId", async (req, res) => {
-  try {
-    const updatedJob = await JobModel.findByIdAndUpdate(
-      req.params.jobId,
-      req.body,
-      {
-        new: true,
-        runValidators: true,
+      if (!job) {
+        return res.status(404).json({
+          success: false,
+          message: "Job not found",
+        });
       }
-    );
 
-    if (updatedJob === null) {
-      return res.status(404).json({
+      if (job.employer.toString() !== req.user.userId.toString()) {
+        return res.status(403).json({
+          success: false,
+          message: "You can update only your own jobs",
+        });
+      }
+
+      delete req.body.employer;
+
+      const updatedJob = await JobModel.findByIdAndUpdate(
+        req.params.jobId,
+        req.body,
+        {
+          new: true,
+          runValidators: true,
+        }
+      );
+
+      res.status(200).json({
+        success: true,
+        message: "Job updated successfully",
+        data: updatedJob,
+      });
+    } catch (error) {
+      res.status(400).json({
         success: false,
-        message: "Job not found",
+        message: error.message,
       });
     }
-
-    res.status(200).json({
-      success: true,
-      message: "Job updated successfully",
-      data: updatedJob,
-    });
-
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
   }
-});
+);
 
+jobRouter.delete(
+  "/jobs/:jobId",
+  authenticateUser,
+  authorizeRoles("EMPLOYER"),
+  async (req, res) => {
+    try {
+      const job = await JobModel.findById(req.params.jobId);
 
-// DELETE JOB
-jobRouter.delete("/jobs/:jobId", async (req, res) => {
-  try {
-    const deletedJob = await JobModel.findByIdAndDelete(
-      req.params.jobId
-    );
+      if (!job) {
+        return res.status(404).json({
+          success: false,
+          message: "Job not found",
+        });
+      }
 
-    if (deletedJob === null) {
-      return res.status(404).json({
+      if (job.employer.toString() !== req.user.userId.toString()) {
+        return res.status(403).json({
+          success: false,
+          message: "You can delete only your own jobs",
+        });
+      }
+
+      await JobModel.findByIdAndDelete(req.params.jobId);
+
+      res.status(200).json({
+        success: true,
+        message: "Job deleted successfully",
+      });
+    } catch (error) {
+      res.status(400).json({
         success: false,
-        message: "Job not found",
+        message: error.message,
       });
     }
-
-    res.status(200).json({
-      success: true,
-      message: "Job deleted successfully",
-      data: deletedJob,
-    });
-
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
   }
-});
+);
