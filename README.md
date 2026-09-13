@@ -1,14 +1,14 @@
 # Job Portal Backend API
 
-A secure role-based Job Portal Backend built using **Node.js, Express.js, MongoDB, and Mongoose**.
+A secure, role-based Job Portal Backend built using **Node.js, Express.js, MongoDB, and Mongoose**.
 
-The application supports three different user roles:
+This project supports three roles:
 
 - Job Seeker
 - Employer
 - Admin
 
-The backend implements authentication, authorization, job management, job applications, application status management, and platform-level administration.
+The backend includes authentication, authorization, job management, job applications, profile management, application status tracking, and admin-level platform management.
 
 ---
 
@@ -40,68 +40,61 @@ The backend implements authentication, authorization, job management, job applic
 - Logout by clearing authentication cookie
 - Authentication middleware
 - Role-based authorization middleware
-
----
-
-## User Roles
+- Blocked-user login prevention
 
 ### Job Seeker
 
-A Job Seeker can:
-
 - Register and login
-- Browse available jobs
+- View available jobs
 - View a specific job
 - Apply for a job
 - Apply only once to the same job
 - View submitted applications
 - View application status
+- View own profile
+- Update skills, experience, and education
 - Logout
 
-Application statuses include:
+Application statuses:
 
-- `PENDING`
-- `ACCEPTED`
-- `REJECTED`
-
----
+```text
+PENDING
+ACCEPTED
+REJECTED
+```
 
 ### Employer
 
-An Employer can:
-
 - Register and login
-- Create jobs
+- Create job postings
 - View their own jobs
 - Update only their own jobs
 - Delete only their own jobs
-- View applications received for their jobs
+- View applications received for their own jobs
 - Update application status
 - Logout
 
-Employers cannot modify jobs created by another Employer.
-
----
+Employer ownership validation prevents one Employer from modifying another Employer's job.
 
 ### Admin
 
-An Admin can:
-
 - Login securely
-- View all users
+- View all registered users
 - View a user by ID
 - Update user status
 - Delete users
 - View all jobs
 - View a job by ID
-- Remove jobs from the platform
+- Delete inappropriate or invalid jobs
 
-User status can be:
+User status:
 
-- `ACTIVE`
-- `BLOCKED`
+```text
+ACTIVE
+BLOCKED
+```
 
-Admin routes are protected using authentication and role-based authorization middleware.
+Admin routes are protected by both authentication and role-based authorization.
 
 ---
 
@@ -135,13 +128,11 @@ job-portal-backend/
 
 ---
 
-# Database Design
+## Database Design
 
-## User
+### User Model
 
-Stores account, authentication, role and status information.
-
-Example fields:
+Main fields:
 
 ```text
 name
@@ -149,6 +140,9 @@ email
 password
 role
 status
+skills
+experience
+education
 ```
 
 Roles:
@@ -159,13 +153,18 @@ EMPLOYER
 ADMIN
 ```
 
----
+Status:
 
-## Job
+```text
+ACTIVE
+BLOCKED
+```
 
-Stores job information and references the Employer who created it.
+Profile information such as education and skills is embedded inside the User document.
 
-Example fields:
+### Job Model
+
+Main fields:
 
 ```text
 title
@@ -191,16 +190,12 @@ CLOSED
 Relationship:
 
 ```text
-Job → Employer (User)
+Job → Employer(User)
 ```
 
----
+### Application Model
 
-## Application
-
-Connects a Job Seeker to a Job.
-
-Example fields:
+Main fields:
 
 ```text
 job
@@ -214,22 +209,22 @@ Relationships:
 
 ```text
 Application → Job
-Application → Job Seeker (User)
+Application → Job Seeker(User)
 ```
 
-A compound unique index prevents the same Job Seeker from applying to the same job more than once.
+A compound unique index prevents the same Job Seeker from applying to the same job multiple times.
 
 ---
 
-# Authentication Flow
+## Authentication Flow
 
 ```text
 Register
    ↓
-Password hashed using bcrypt
+bcrypt hashes password
    ↓
 User stored in MongoDB
-
+   ↓
 Login
    ↓
 Email + Password
@@ -242,102 +237,66 @@ JWT stored in httpOnly cookie
    ↓
 Authentication Middleware
    ↓
-Role Authorization Middleware
+Role Middleware
+   ↓
+Protected Route
 ```
-
-Protected routes read the JWT from the cookie and verify it before allowing access.
 
 ---
 
-# API Endpoints
-
-Base URL:
+## API Base URL
 
 ```text
 http://localhost:4000/api
 ```
 
-## Authentication
+### Authentication APIs
 
-| Method | Endpoint     | Description               |
-| ------ | ------------ | ------------------------- |
-| POST   | `/users`     | Register user             |
-| POST   | `/login`     | Login user                |
-| POST   | `/logout`    | Logout user               |
-| GET    | `/protected` | Authentication test route |
+| Method | Endpoint         | Description              |
+| ------ | ---------------- | ------------------------ |
+| POST   | `/users`         | Register user            |
+| POST   | `/login`         | Login user               |
+| POST   | `/logout`        | Logout user              |
+| GET    | `/protected`     | Test authenticated route |
+| GET    | `/employer-only` | Test Employer-only route |
 
----
+### Profile APIs
 
-## Jobs
+| Method | Endpoint   | Access             | Description      |
+| ------ | ---------- | ------------------ | ---------------- |
+| GET    | `/profile` | Authenticated User | View own profile |
+| PATCH  | `/profile` | Job Seeker         | Update profile   |
+
+Example profile update:
+
+```json
+{
+  "name": "Manish",
+  "skills": ["Node.js", "Express.js", "MongoDB"],
+  "experience": "Backend development learner",
+  "education": [
+    {
+      "institution": "VNR VJIET",
+      "degree": "B.Tech",
+      "field": "Robotics and Artificial Intelligence",
+      "year": 2029
+    }
+  ]
+}
+```
+
+### Job APIs
 
 | Method | Endpoint        | Access   | Description    |
 | ------ | --------------- | -------- | -------------- |
 | GET    | `/jobs`         | Public   | Get all jobs   |
 | GET    | `/jobs/:jobId`  | Public   | Get job by ID  |
-| POST   | `/jobs`         | Employer | Create a job   |
+| POST   | `/jobs`         | Employer | Create job     |
 | GET    | `/jobs/my-jobs` | Employer | View own jobs  |
 | PATCH  | `/jobs/:jobId`  | Employer | Update own job |
 | DELETE | `/jobs/:jobId`  | Employer | Delete own job |
 
----
-
-## Applications
-
-| Method | Endpoint                              | Access     | Description                   |
-| ------ | ------------------------------------- | ---------- | ----------------------------- |
-| POST   | `/jobs/:jobId/apply`                  | Job Seeker | Apply for a job               |
-| GET    | `/applications/my-applications`       | Job Seeker | View own applications         |
-| GET    | `/jobs/:jobId/applications`           | Employer   | View applications for own job |
-| PATCH  | `/applications/:applicationId/status` | Employer   | Update application status     |
-
-Example application status update:
-
-```json
-{
-  "status": "ACCEPTED"
-}
-```
-
-Allowed values:
-
-```text
-PENDING
-ACCEPTED
-REJECTED
-```
-
----
-
-## Admin
-
-| Method | Endpoint                      | Description        |
-| ------ | ----------------------------- | ------------------ |
-| GET    | `/admin/users`                | Get all users      |
-| GET    | `/admin/users/:userId`        | Get user by ID     |
-| PATCH  | `/admin/users/:userId/status` | Update user status |
-| DELETE | `/admin/users/:userId`        | Delete user        |
-| GET    | `/admin/jobs`                 | Get all jobs       |
-| GET    | `/admin/jobs/:jobId`          | Get job by ID      |
-| DELETE | `/admin/jobs/:jobId`          | Remove a job       |
-
-Example status update:
-
-```json
-{
-  "status": "BLOCKED"
-}
-```
-
-Allowed values:
-
-```text
-ACTIVE
-BLOCKED
-```
-
----
-
-# Job Creation Example
+Example job creation:
 
 ```json
 {
@@ -356,58 +315,90 @@ BLOCKED
 }
 ```
 
-The Employer ID is taken automatically from the authenticated user's JWT and stored as a reference in the Job document.
+The Employer ID is automatically obtained from the authenticated JWT and stored in the Job document.
+
+### Application APIs
+
+| Method | Endpoint                              | Access     | Description                   |
+| ------ | ------------------------------------- | ---------- | ----------------------------- |
+| POST   | `/jobs/:jobId/apply`                  | Job Seeker | Apply for job                 |
+| GET    | `/applications/my-applications`       | Job Seeker | View own applications         |
+| GET    | `/jobs/:jobId/applications`           | Employer   | View applications for own job |
+| PATCH  | `/applications/:applicationId/status` | Employer   | Update application status     |
+
+Example status update:
+
+```json
+{
+  "status": "ACCEPTED"
+}
+```
+
+Allowed statuses:
+
+```text
+PENDING
+ACCEPTED
+REJECTED
+```
+
+### Admin APIs
+
+| Method | Endpoint                      | Description        |
+| ------ | ----------------------------- | ------------------ |
+| GET    | `/admin/users`                | Get all users      |
+| GET    | `/admin/users/:userId`        | Get user by ID     |
+| PATCH  | `/admin/users/:userId/status` | Update user status |
+| DELETE | `/admin/users/:userId`        | Delete user        |
+| GET    | `/admin/jobs`                 | Get all jobs       |
+| GET    | `/admin/jobs/:jobId`          | Get job by ID      |
+| DELETE | `/admin/jobs/:jobId`          | Delete job         |
+
+Example user status update:
+
+```json
+{
+  "status": "BLOCKED"
+}
+```
 
 ---
 
-# Installation
+## Installation
 
-## 1. Clone the repository
+### Clone Repository
 
 ```bash
 git clone https://github.com/Y-Manish/job-portal-backend.git
-```
-
-Move into the project:
-
-```bash
 cd job-portal-backend
 ```
 
----
-
-## 2. Install dependencies
+### Install Dependencies
 
 ```bash
 npm install
 ```
 
----
+### Environment Variables
 
-## 3. Create `.env`
-
-Create a `.env` file in the root directory.
-
-Example:
+Create a `.env` file in the project root:
 
 ```env
 JWT_SECRET=your_secure_jwt_secret
 ```
 
-Do not commit `.env` to GitHub.
+Do not commit `.env`.
 
-The `.gitignore` should contain:
+Recommended `.gitignore` entries:
 
 ```text
 node_modules/
 .env
 ```
 
----
+### MongoDB
 
-## 4. Start MongoDB
-
-The current development database is:
+The current development database uses:
 
 ```text
 mongodb://localhost:27017/job_portal_db
@@ -415,60 +406,46 @@ mongodb://localhost:27017/job_portal_db
 
 Make sure MongoDB is running locally.
 
----
-
-## 5. Start the server
-
-Using Node:
+### Start Server
 
 ```bash
 node server.js
 ```
 
-Or using Nodemon:
+or:
 
 ```bash
 nodemon server.js
 ```
 
-The server runs at:
+Server:
 
 ```text
 http://localhost:4000
 ```
 
-Health/root endpoint:
-
-```text
-GET http://localhost:4000/
-```
-
 ---
 
-# Postman Testing
-
-The project is tested using Postman.
-
-Recommended Postman folders:
+## Postman Collection Structure
 
 ```text
-Job Portal Backend
+JOB PORTAL BACKEND
 │
 ├── Auth
 │   ├── Register Job Seeker
 │   ├── Register Employer
 │   ├── Login Job Seeker
 │   ├── Login Employer
-│   ├── Protected Test
+│   ├── Login Admin
 │   └── Logout
 │
 ├── Jobs
 │   ├── Get All Jobs
 │   ├── Get Job By ID
-│   ├── Create New Job
+│   ├── Create Job
 │   ├── Get My Jobs
-│   ├── Update Job By ID
-│   └── Delete Job By ID
+│   ├── Update Job
+│   └── Delete Job
 │
 ├── Applications
 │   ├── Apply For Job
@@ -476,8 +453,11 @@ Job Portal Backend
 │   ├── Employer View Applications
 │   └── Update Application Status
 │
+├── Profile
+│   ├── Get My Profile
+│   └── Update My Profile
+│
 └── Admin
-    ├── Login Admin
     ├── Get All Users
     ├── Get User By ID
     ├── Update User Status
@@ -489,9 +469,9 @@ Job Portal Backend
 
 ---
 
-# Tested Flow
+## End-to-End Tested Flow
 
-The following end-to-end flow has been manually tested using Postman:
+The following flow was tested manually using Postman:
 
 ```text
 Employer Registration
@@ -502,79 +482,90 @@ Create Job
         ↓
 Job stored with Employer reference
         ↓
-
 Job Seeker Registration
         ↓
 Job Seeker Login
         ↓
-Browse Jobs
+View Jobs
         ↓
-Apply For Job
+Apply for Job
         ↓
 Application = PENDING
         ↓
-
 Employer Login
         ↓
 View Applications
         ↓
-Update Application
+Update Status
         ↓
 ACCEPTED / REJECTED
         ↓
-
 Job Seeker Login
         ↓
-View My Applications
+View Applications
         ↓
 Updated status visible
 ```
 
-Admin authentication and user-management APIs have also been tested through Postman.
+Job Seeker profile management and Admin user/job management were also tested through Postman.
 
 ---
 
-# Security
+## Negative Testing
 
-The backend includes:
+The following failure scenarios were tested:
+
+- Creating a job without authentication → `401 Unauthorized`
+- Job Seeker trying to create a job → `403 Forbidden`
+- Applying to the same job twice → rejected
+- Employer trying to modify another Employer's job → `403 Forbidden`
+- Incorrect login password → `401 Unauthorized`
+- Blocked user trying to login → `403 Forbidden`
+- Non-Admin accessing Admin route → `403 Forbidden`
+
+---
+
+## Security Features
 
 - bcrypt password hashing
 - JWT authentication
-- httpOnly cookies
+- httpOnly cookie storage
 - Authentication middleware
-- Role-based authorization
-- Employer resource ownership checks
-- Password hashes excluded from Admin responses
+- Role-based authorization middleware
+- Employer ownership checks
+- Admin-only protected routes
 - Duplicate application prevention
-- Environment variables for JWT secrets
-- Mongoose schema validation
+- Blocked-account login prevention
+- Password hashes excluded from API responses
+- Environment variables for secrets
+- Mongoose validation
 
 ---
 
-# Current Project Status
+## Project Status
 
-Core backend functionality implemented:
+Core backend implementation is complete.
+
+Implemented:
 
 - Authentication
 - Authorization
+- Job Seeker profile management
 - Job management
 - Job ownership
-- Application management
+- Job applications
 - Application status tracking
+- Employer application management
 - Admin user management
 - Admin job management
-
-The project is backend-only and is designed to be tested through REST APIs using Postman.
+- Positive API testing
+- Negative authorization/security testing
 
 ---
 
 ## Repository
 
-GitHub:
-
-```text
 https://github.com/Y-Manish/job-portal-backend
-```
 
 ---
 
