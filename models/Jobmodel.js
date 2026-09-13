@@ -8,9 +8,15 @@ const jobSchema = new Schema(
       trim: true,
     },
 
-    company: {
+    companyName: {
       type: String,
       required: [true, "Company name is required"],
+      trim: true,
+    },
+
+    description: {
+      type: String,
+      required: [true, "Job description is required"],
       trim: true,
     },
 
@@ -18,6 +24,53 @@ const jobSchema = new Schema(
       type: String,
       required: [true, "Location is required"],
       trim: true,
+    },
+
+    employmentType: {
+      type: String,
+      enum: [
+        "FULL_TIME",
+        "PART_TIME",
+        "INTERNSHIP",
+        "CONTRACT",
+      ],
+      required: [true, "Employment type is required"],
+    },
+
+    salaryRange: {
+      min: {
+        type: Number,
+        required: [true, "Minimum salary is required"],
+        min: 0,
+      },
+
+      max: {
+        type: Number,
+        required: [true, "Maximum salary is required"],
+        min: 0,
+      },
+    },
+
+    requiredSkills: {
+      type: [String],
+      default: [],
+    },
+
+    experienceRequirement: {
+      type: Number,
+      required: [true, "Experience requirement is required"],
+      min: 0,
+    },
+
+    applicationDeadline: {
+      type: Date,
+      required: [true, "Application deadline is required"],
+    },
+
+    status: {
+      type: String,
+      enum: ["OPEN", "CLOSED"],
+      default: "OPEN",
     },
 
     employer: {
@@ -32,4 +85,4 @@ const jobSchema = new Schema(
   }
 );
 
-export const JobModel = model("job", jobSchema);
+export const JobModel = model("job", jobSchema);  
