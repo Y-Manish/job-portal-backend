@@ -4,8 +4,7 @@ import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
 
 import { applicationRouter } from "./routes/applicationApi.js";
-
-
+import { adminRouter } from "./routes/adminApi.js";
 import { jobRouter } from "./routes/jobApi.js";
 import { userRouter } from "./routes/userApi.js";
 
@@ -27,6 +26,7 @@ mongoose
 app.use(express.json());
 app.use(cookieParser());
 app.use("/api", applicationRouter);
+app.use("/api", adminRouter);
 
 app.get("/", (req, res) => {
   res.send("Job Portal is running");

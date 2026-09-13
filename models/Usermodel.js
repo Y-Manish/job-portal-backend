@@ -31,6 +31,46 @@ const userSchema = new Schema(
       },
       default: "JOB_SEEKER",
     },
+
+    status: {
+      type: String,
+      enum: ["ACTIVE", "BLOCKED"],
+      default: "ACTIVE",
+    },
+
+    skills: {
+      type: [String],
+      default: [],
+    },
+
+    experience: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    education: [
+      {
+        institution: {
+          type: String,
+          trim: true,
+        },
+
+        degree: {
+          type: String,
+          trim: true,
+        },
+
+        field: {
+          type: String,
+          trim: true,
+        },
+
+        year: {
+          type: Number,
+        },
+      },
+    ],
   },
   {
     versionKey: false,
@@ -39,8 +79,6 @@ const userSchema = new Schema(
   }
 );
 
-
-// HASH PASSWORD BEFORE SAVING
 userSchema.pre("save", async function () {
   if (!this.isModified("password")) {
     return;
@@ -48,6 +86,5 @@ userSchema.pre("save", async function () {
 
   this.password = await bcrypt.hash(this.password, 10);
 });
-
 
 export const UserModel = model("user", userSchema);
